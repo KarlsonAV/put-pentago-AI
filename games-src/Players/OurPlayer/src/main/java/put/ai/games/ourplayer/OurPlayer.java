@@ -13,6 +13,7 @@ import put.ai.games.game.Player;
 
 public class OurPlayer extends Player {
 
+    public final static int DEPTH = 3;
     public final static float valueOf2Pawns = 10.0f;
     public final static float valueOf3Pawns = 200.0f;
     public final static float valueOf4Pawns = 2000.0f;
@@ -169,6 +170,57 @@ public class OurPlayer extends Player {
             return boardHeuristicValue;
         }
 
+        public static Heuristic max(Tree.Heuristic a, Tree.Heuristic b) {
+            if (a.heuristicValue >= b.heuristicValue) {
+                return a;
+            }
+            return b;
+        }
+
+        public static Heuristic min(Tree.Heuristic a, Tree.Heuristic b) {
+            if (a.heuristicValue <= b.heuristicValue) {
+                return a;
+            }
+            return b;
+        }
+
+    }
+
+    public Tree.Heuristic MinMaxAlfaBeta(Tree gameTree, int depth, Tree.Heuristic alpha, Tree.Heuristic beta, boolean maximizingPlayer) {
+            if (depth == 0) {
+                return gameTree.getBoardHeuristicValue();
+            }
+
+            gameTree.makeChildren();
+            if (!gameTree.hasChildren()) {
+                return gameTree.getBoardHeuristicValue();
+            }
+
+            ArrayList<Tree> children = gameTree.getChildren();
+
+            // MAX
+            if (maximizingPlayer) {
+                for (Tree child: children) {
+                    Tree.Heuristic valueOfChildren = MinMaxAlfaBeta(child, depth-1, alpha, beta, false);
+                    alpha = Tree.max(valueOfChildren, alpha);
+                    if (alpha.heuristicValue >= beta.heuristicValue) {
+                        return beta;
+                    }
+                }
+                return alpha;
+            }
+            // MIN
+            else {
+                for (Tree child: children) {
+                    Tree.Heuristic valueOfChildren = MinMaxAlfaBeta(child, depth - 1, alpha, beta, true);
+                    beta = Tree.min(valueOfChildren, beta);
+                    if (alpha.heuristicValue >= beta.heuristicValue) {
+                        return alpha;
+                    }
+                }
+                return beta;
+            }
+
     }
 
     @Override
@@ -179,7 +231,23 @@ public class OurPlayer extends Player {
 
     @Override
     public Move nextMove(Board b) {
-        List<Move> moves = b.getMovesFor(getColor());
-        return moves.get(random.nextInt(moves.size()));
+        System.out.println("HELLLO");
+        boolean maximizingPlayer;
+        Color playerColor = getColor();
+        List<Move> possibleMoves = b.getMovesFor(playerColor);
+
+        maximizingPlayer = false;
+        if (playerColor.equals(Color.PLAYER1)) {
+            maximizingPlayer = true;
+        }
+
+        Tree.Heuristic alpha = new Tree.Heuristic(Float.NEGATIVE_INFINITY, possibleMoves.get(0));
+        Tree.Heuristic beta = new Tree.Heuristic(Float.POSITIVE_INFINITY, possibleMoves.get(0));
+
+        Tree currentGameTree = new Tree(b, playerColor);
+
+        Tree.Heuristic result = MinMaxAlfaBeta(currentGameTree, DEPTH, alpha, beta, maximizingPlayer);
+        // return result.move;
+        return possibleMoves.get(random.nextInt(possibleMoves.size()));
     }
 }
