@@ -202,6 +202,7 @@ public class OurPlayer extends Player {
             if (maximizingPlayer) {
                 for (Tree child: children) {
                     Tree.Heuristic valueOfChildren = MinMaxAlfaBeta(child, depth-1, alpha, beta, false);
+                    System.out.println("Player max: " + maximizingPlayer + " Depth: " + depth + " Value: " + valueOfChildren.heuristicValue);
                     alpha = Tree.max(valueOfChildren, alpha);
                     if (alpha.heuristicValue >= beta.heuristicValue) {
                         return beta;
@@ -213,6 +214,7 @@ public class OurPlayer extends Player {
             else {
                 for (Tree child: children) {
                     Tree.Heuristic valueOfChildren = MinMaxAlfaBeta(child, depth - 1, alpha, beta, true);
+                    System.out.println("Player max: " + maximizingPlayer + " Depth: " + depth + " Value: " + valueOfChildren.heuristicValue);
                     beta = Tree.min(valueOfChildren, beta);
                     if (alpha.heuristicValue >= beta.heuristicValue) {
                         return alpha;
@@ -231,23 +233,21 @@ public class OurPlayer extends Player {
 
     @Override
     public Move nextMove(Board b) {
-        System.out.println("HELLLO");
         boolean maximizingPlayer;
         Color playerColor = getColor();
-        List<Move> possibleMoves = b.getMovesFor(playerColor);
 
         maximizingPlayer = false;
         if (playerColor.equals(Color.PLAYER1)) {
             maximizingPlayer = true;
         }
 
-        Tree.Heuristic alpha = new Tree.Heuristic(Float.NEGATIVE_INFINITY, possibleMoves.get(0));
-        Tree.Heuristic beta = new Tree.Heuristic(Float.POSITIVE_INFINITY, possibleMoves.get(0));
+        Tree.Heuristic alpha = new Tree.Heuristic(Float.NEGATIVE_INFINITY, null);
+        Tree.Heuristic beta = new Tree.Heuristic(Float.POSITIVE_INFINITY, null);
 
         Tree currentGameTree = new Tree(b, playerColor);
 
         Tree.Heuristic result = MinMaxAlfaBeta(currentGameTree, DEPTH, alpha, beta, maximizingPlayer);
-        // return result.move;
-        return possibleMoves.get(random.nextInt(possibleMoves.size()));
+        System.out.println(result.heuristicValue);
+        return result.move;
     }
 }
