@@ -14,11 +14,11 @@ import put.ai.games.game.Player;
 public class OurPlayer extends Player {
 
     public final static int DEPTH = 3;
-    public final static float valueOf2Pawns = 10.0f;
+    public final static float valueOf2Pawns = 100.0f;
     public final static float valueOf3Pawns = 200.0f;
     public final static float valueOf4Pawns = 2000.0f;
     public final static float valueOf5Pawns = 99999999999999999999.0f;
-    public final static float valueOfBlockedOpponent = 850.0f;
+    public final static float valueOfBlockedOpponent = 1050.0f;
 
     private Random random = new Random(0xdeadbeef);
 
@@ -204,6 +204,7 @@ public class OurPlayer extends Player {
                     Tree.Heuristic valueOfChildren = MinMaxAlfaBeta(child, depth-1, alpha, beta, false);
                     System.out.println("Player max: " + maximizingPlayer + " Depth: " + depth + " Value: " + valueOfChildren.heuristicValue);
                     alpha = Tree.max(valueOfChildren, alpha);
+                    System.out.println("Alpha: " + alpha.heuristicValue);
                     if (alpha.heuristicValue >= beta.heuristicValue) {
                         return beta;
                     }
@@ -216,6 +217,7 @@ public class OurPlayer extends Player {
                     Tree.Heuristic valueOfChildren = MinMaxAlfaBeta(child, depth - 1, alpha, beta, true);
                     System.out.println("Player max: " + maximizingPlayer + " Depth: " + depth + " Value: " + valueOfChildren.heuristicValue);
                     beta = Tree.min(valueOfChildren, beta);
+                    System.out.println("Beta: " + beta.heuristicValue);
                     if (alpha.heuristicValue >= beta.heuristicValue) {
                         return alpha;
                     }
@@ -225,17 +227,37 @@ public class OurPlayer extends Player {
 
     }
 
+    public Move CheckWin(Board board, Color playerColor) {
+        List<Move> possibleMoves = board.getMovesFor(playerColor);
+        for (Move move: possibleMoves) {
+            board.doMove(move);
+            if (playerColor.equals(board.getWinner(playerColor))) {
+                board.undoMove(move);
+                return move;
+            }
+            board.undoMove(move);
+        }
+        System.out.println("Nie ma wygranej!");
+        return null;
+    }
+
     @Override
     public String getName() {
         return "Andrei Kartavik 153925 Cezary Szwedek 151920";
     }
-
 
     @Override
     public Move nextMove(Board b) {
         boolean maximizingPlayer;
         Color playerColor = getColor();
 
+        Move checkWinMove = CheckWin(b, playerColor);
+        if (checkWinMove != null) {
+            System.out.println("Win with CheckWinMove!");
+            return checkWinMove;
+        }
+
+        // MinMax with Alpha-Beta pruning
         maximizingPlayer = false;
         if (playerColor.equals(Color.PLAYER1)) {
             maximizingPlayer = true;
@@ -248,6 +270,7 @@ public class OurPlayer extends Player {
 
         Tree.Heuristic result = MinMaxAlfaBeta(currentGameTree, DEPTH, alpha, beta, maximizingPlayer);
         System.out.println(result.heuristicValue);
+        System.out.println(playerColor);
         return result.move;
     }
 }
