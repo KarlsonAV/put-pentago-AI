@@ -27,12 +27,12 @@ public class NastyPlayer extends Player {
     public Move nextMove(Board b) {
         PrintStream p = null;
         try {
-            p = new PrintStream("/tmp/plik.txt");
-            p.println(Calendar.getInstance().getTime());
-            p.close();
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(NastyPlayer.class.getName()).log(Level.SEVERE, null, ex);
-            throw new RuntimeException(ex);
+            //p = new PrintStream("/plik.txt");
+            //p.println(Calendar.getInstance().getTime());
+            //p.close();
+        //} catch (FileNotFoundException ex) {
+            //Logger.getLogger(NastyPlayer.class.getName()).log(Level.SEVERE, null, ex);
+            //throw new RuntimeException(ex);
         } finally {
             if (p != null) {
                 p.close();

@@ -14,11 +14,13 @@ import put.ai.games.game.Player;
 public class OurPlayer extends Player {
 
     public final static int DEPTH = 3;
+
+    public final static float valueOfCenterCross = 25.0f;
     public final static float valueOf2Pawns = 100.0f;
     public final static float valueOf3Pawns = 200.0f;
     public final static float valueOf4Pawns = 2000.0f;
     public final static float valueOf5Pawns = 99999999999999999999.0f;
-    public final static float valueOfBlockedOpponent = 1050.0f;
+    public final static float valueOfBlockedOpponent = 1000.0f;
 
     private Random random = new Random(0xdeadbeef);
 
@@ -76,6 +78,20 @@ public class OurPlayer extends Player {
             return children.size() != 0;
         }
 
+
+        private float valueOfCenter( Board board, Color color) {
+            float result = 0.0f;
+            for(int k = 0; k < board.getSize(); k=k+3) {
+                for( int l = 0; l < board.getSize(); l=l+3) {
+                    if (board.getState(l, k) == getOpponent(color)) {
+                        result += valueOfCenterCross;    //na srodku
+                    }
+                }
+            }
+
+            return result;
+        }
+
         //Adding heuristic value if something happens
         private float pawnsInRow(Board board, Color color) {
             float sum = 0.0f;
@@ -117,47 +133,80 @@ public class OurPlayer extends Player {
             return sum;
         }
 
-        private float blockOpponent(Board board, Color opponentColor) {
-            float penalty = 0.0f;
+        private float blocksOpponentLine(Board board, Color color) {
+            float sum = 0.0f;
 
             for (int i = 0; i < board.getSize(); i++) {
-                for (int j = 0; j < board.getSize() - 4; j++) {
-                    if (board.getState(i, j) == opponentColor
-                            && board.getState(i, j + 1) == opponentColor
-                            && board.getState(i, j + 2) == opponentColor
-                            && board.getState(i, j + 3) == opponentColor
-                            && board.getState(i, j + 4) == Color.EMPTY) {
-                        penalty += valueOfBlockedOpponent * (5 - countOpponentPawns(board, opponentColor, i, j, i, j + 4));
-                    }
-
-                    if (board.getState(j, i) == opponentColor
-                            && board.getState(j + 1, i) == opponentColor
-                            && board.getState(j + 2, i) == opponentColor
-                            && board.getState(j + 3, i) == opponentColor
-                            && board.getState(j + 4, i) == Color.EMPTY) {
-                        penalty += valueOfBlockedOpponent * (5 - countOpponentPawns(board, opponentColor, j, i, j + 4, i));
+                for (int j = 0; j < board.getSize(); j++) {
+                    if (board.getState(i, j) == color) {
+                        // Check if placing a pawn at this position blocks opponent's line
+                        if (blocksLine(board, getOpponent(color), i, j)) {
+                            sum += valueOfBlockedOpponent;
+                        }
                     }
                 }
             }
-
-            return penalty;
+            return sum;
         }
 
-        private int countOpponentPawns(Board board, Color opponentColor, int startX, int startY, int endX, int endY) {
+        private boolean blocksLine(Board board, Color opponentColor, int x, int y) {
+            // Check if placing a pawn at (x, y) blocks opponent's line
+            // This function checks for 3 or 4 in a row for the opponent
+
+            // Horizontal
+            int countHorizontal = countOpponentPawns(board, opponentColor, x, y, 1, 0)
+                    + countOpponentPawns(board, opponentColor, x, y, -1, 0);
+            if (countHorizontal == 3 || countHorizontal == 4) {
+                if (!isEmptySpace(board, x + 2, y) && !isEmptySpace(board, x - 2, y)) {
+                    return false;  // Jeśli obie strony są zajęte, to nie jest blokujące
+                }
+                return true;
+            }
+
+            // Vertical
+            int countVertical = countOpponentPawns(board, opponentColor, x, y, 0, 1)
+                    + countOpponentPawns(board, opponentColor, x, y, 0, -1);
+            if (countVertical == 3 || countVertical == 4) {
+                if (!isEmptySpace(board, x, y + 2) && !isEmptySpace(board, x, y - 2)) {
+                    return false;  // Jeśli obie strony są zajęte, to nie jest blokujące
+                }
+                return true;
+            }
+
+            return false;
+        }
+
+        private boolean isEmptySpace(Board board, int x, int y) {
+            // Sprawdza, czy dane pole na planszy jest puste
+            return x >= 0 && x < board.getSize() && y >= 0 && y < board.getSize()
+                    && board.getState(x, y) == Color.EMPTY;
+        }
+
+        private int countOpponentPawns(Board board, Color opponentColor, int x, int y, int directionX, int directionY) {
             int count = 0;
-            for (int i = startX; i <= endX; i++) {
-                for (int j = startY; j <= endY; j++) {
-                    if (board.getState(i, j) == opponentColor) {
+            for (int i = 1; i <= 4; i++) {
+                int currentX = x + i * directionX;
+                int currentY = y + i * directionY;
+
+                if (currentX >= 0 && currentX < board.getSize() && currentY >= 0 && currentY < board.getSize()) {
+                    if (board.getState(currentX, currentY) == opponentColor) {
                         count++;
+                    } else {
+                        break; // Zatrzymaj liczenie w momencie, gdy natrafisz na pole gracza lub puste
                     }
+                } else {
+                    break; // Zatrzymaj liczenie, jeśli wychodzisz poza zakres planszy
                 }
             }
             return count;
         }
 
 
+
         private Heuristic getBoardHeuristicValue() {
             boardHeuristicValue.heuristicValue = 0.0f;
+
+            boardHeuristicValue.heuristicValue += valueOfCenter(board, Color.PLAYER1);
 
             boardHeuristicValue.heuristicValue += pawnsInRow(board, Color.PLAYER1);
             boardHeuristicValue.heuristicValue += pawnsInColumn(board, Color.PLAYER1);
@@ -165,7 +214,7 @@ public class OurPlayer extends Player {
             boardHeuristicValue.heuristicValue -= pawnsInRow(board, Color.PLAYER2);
             boardHeuristicValue.heuristicValue -= pawnsInColumn(board, Color.PLAYER2);
 
-            boardHeuristicValue.heuristicValue -= blockOpponent(board, Color.PLAYER2);
+            boardHeuristicValue.heuristicValue += blocksOpponentLine(board, Color.PLAYER1);
 
             return boardHeuristicValue;
         }
