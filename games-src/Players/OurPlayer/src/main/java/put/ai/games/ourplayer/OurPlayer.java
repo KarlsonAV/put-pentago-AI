@@ -27,11 +27,13 @@ public class OurPlayer extends Player {
     private long startTime = 0;
     private long timeLimit = 10 * 1000;
 
+    public final static float valueOfCenterCross = 25.0f;
     public final static float valueOf2Pawns = 100.0f;
     public final static float valueOf3Pawns = 200.0f;
     public final static float valueOf4Pawns = 2000.0f;
     public final static float valueOf5Pawns = 9999999.0f;
-    public final static float valueOfBlockedOpponent = 1000.0f;
+    public final static float valueOfBlockedOpponent3 = 1000.0f;
+    public final static float valueOfBlockedOpponent4 = 5000.0f;
 
 
     boolean timeout() {
@@ -42,6 +44,19 @@ public class OurPlayer extends Player {
         List<Move> moves = board.getMovesFor(color);
         Move move = moves.get(random.nextInt(moves.size()));
         return new PentagoMove(move, score(board, color));
+    }
+
+    private float valueOfCenter( Board board, Color color) {
+        float result = 0.0f;
+        for(int k = 0; k < board.getSize(); k=k+3) {
+            for( int l = 0; l < board.getSize(); l=l+3) {
+                if (board.getState(l, k) == getOpponent(color)) {
+                    result += valueOfCenterCross;    //na srodku
+                }
+            }
+        }
+
+        return result;
     }
 
     private float pawnsInRow(Board board, Color color) {
@@ -92,7 +107,13 @@ public class OurPlayer extends Player {
                 if (board.getState(i, j) == color) {
                     // Check if placing a pawn at this position blocks opponent's line
                     if (blocksLine(board, getOpponent(color), i, j)) {
-                        sum += valueOfBlockedOpponent;
+                        int count = countOpponentPawns(board, getOpponent(color), i, j, 0, 1)
+                                + countOpponentPawns(board, getOpponent(color), i, j, 0, -1);
+                        if (count == 4) {
+                            sum +=  valueOfBlockedOpponent4;  // Zwiększ punkty, jeśli blokuje 4 pionki
+                        } else if (count == 3) {
+                            sum += valueOfBlockedOpponent3;  // Standardowa ilość punktów za blokowanie 3 pionków
+                        }
                     }
                 }
             }
@@ -183,6 +204,8 @@ public class OurPlayer extends Player {
 
     double score(Board board, Color color) {
         double res = 0.0f;
+
+        res += valueOfCenter(board, color);
 
         res += pawnsInRow(board, color);
         res += pawnsInColumn(board, color);
